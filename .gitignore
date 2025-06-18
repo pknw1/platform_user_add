@@ -1,0 +1,5 @@
+.venv
+config/
+config/config.txt
+npm.sh
+npm.py

@@ -1,0 +1,30 @@
+services:
+  notflix-addusers:
+    image: pknw1/notflix_adduser:latest
+    container_name: notflix-addusers
+    environment:
+      - VIRTUAL_HOST=user_webhook.pknw1.co.uk
+      - VIRTUAL_PORT=3000
+      - TZ=Europe/Paris
+    networks:
+      - proxy
+    volumes:
+      - ./config:/config
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+    healthcheck:
+      #test: ["CMD", "/data/healthcheck"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 60s
+      timeout: 30s
+
+
+
+
+
+networks:
+  proxy:
+    external: true
+  admin:
+    external: true
+
