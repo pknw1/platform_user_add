@@ -30,7 +30,8 @@ filebrowser_api = config_settings[2][16:].rstrip()
 filebrowser_adduser_url = config_settings[3][24:].rstrip()
 jfadmin_adduser_url = config_settings[4][20:].rstrip()
 npm_api_url = config_settings[7][12:].rstrip()
-npm_api = config_settings[8][8:].rstrip()
+npm_user = config_settings[8][9:].rstrip()
+npm_password = config_settings[9][13:].rstrip()
 error_url = config_settings[5][10:].rstrip()
 onboarding_url = config_settings[6][15:].rstrip()
 api_obf='*' * len(filebrowser_api)
@@ -43,7 +44,6 @@ print('Filebrowser API Key :'+api_obf)
 print('Filebrowsr API URL Add User :'+filebrowser_adduser_url)
 print('Jellyfin Admin API URL Add User :'+jfadmin_adduser_url)
 print('NPM API BAse :'+npm_api_url)
-print('NPM API Key :'+npm_api)
 print('Error Redirect :'+error_url)
 print('Success Redirect :'+onboarding_url)
 
@@ -115,7 +115,10 @@ def add_fb(username: str, password: str):
 
 def add_npm(username:str, password:str):
     api_url = npm_api_url #'https://proxymanager.admin.pknw1.co.uk/api'
-    token = npm_api 
+    data = { 'identity': npm_user, 'secret': npm_password }
+    npm_api = requests.post(api_url+'/tokens', data=data)
+    print(npm_api.json()['token'])
+    token = npm_api.json()['token'] 
     access_list_url = f"{api_url}/nginx/access-lists/4?expand=items"
     updated_list_url = f"{api_url}/nginx/access-lists/4" 
     # Get the current access list
@@ -132,28 +135,34 @@ def add_npm(username:str, password:str):
         result = 'error'
         print(e.response.text)
         return result
+    items = access_list.json()['items']
+    new_user = {
+                "username": username,
+                "password": password
+            }
+    new_items = [] 
+    new_items.append(new_user)
+    for each in items:
+        item = {"username": each['username'], "password": ""}
+        new_items.append(item) 
     
-    access_list_json = access_list.json()
-    items = access_list_json.get("items", [])
-    new_id = max(item["id"] for item in items) + 1 if items else 1
-    password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    updated_access_list = {
+              "name": "Updated YTPTube Accesss",
+            "satisfy_any": True,
+            "items": new_items
+            }
 
-    items.append({"username": username, "password": password_hash,"id":new_id})
-    access_list_json['items'] = items
+    updated_access_list = json.dumps(updated_access_list)
 
-    access_list_obj=json.dumps(access_list_json)
-
+    print(" ")
+    print(updated_access_list)
+    print(" ")
     try:
-        updated_access_list = requests.put(updated_list_url, data=access_list_obj, headers=headers)
+        result = str(requests.put(updated_list_url, data=updated_access_list, headers=headers).status_code)
     except HTTPError as e:
-        result = 'error'
+        result = '500'
         print(e.response.text)
-        return result
-
-    return updated_access_list.text
-
-
-#result = update_access_list(api_base_url, api_token, new_username, new_password)
+    return str(result)
 
 if __name__ == '__main__':
         app.run(host="0.0.0.0", port=3000, debug=True)
