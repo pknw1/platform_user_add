@@ -156,6 +156,10 @@ def add_npm(username:str, password:str):
         print(e.response.text)
     return str(result)
 
+@app.route('/healthcheck')
+def healthcheck():
+    return 'ok'
+
 @app.route('/')
 def home():
     return render_template('create.html')
