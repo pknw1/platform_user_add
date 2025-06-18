@@ -49,10 +49,6 @@ print('Success Redirect :'+onboarding_url)
 
 app = Flask(__name__)
 
-@app.route('/', methods=['GET'])
-def webroot():
-    return 'ok 200'
-
 @app.route('/adduser', methods=['POST'])
 def adduser():
     if request.method == 'POST':
@@ -64,26 +60,22 @@ def adduser():
         admin_account = add_jfadmin(username,password,email,code)
         if admin_account == '200':
             fb_account = add_fb(username,password)
-            result = admin_account+fb_account
+            if fb_account == '201':
+                youtube_account = add_npm(username,password)
+                if youtube_account == '200':
+                    return redirect(onboarding_url, code=302)
+                else:
+                    return redirect(error_url+'?code='+youtube_account+'&msg=error', code=302)
+            else:
+                return redirect(error_url+'?code='+fb_account+'&msg=error', code=302)
         else:
-            result = admin_account+'500' 
-#        print(fb_account)
-        match result:
-            case '200201': return redirect(onboarding_url, code=302)
-            case '200500': return redirect(error_url+'?code='+result+'&msg=error', code=302)
-            case '401201': return redirect(error_url+'?code='+result+'&msg=error', code=302)
-            case _: return redirect(error_url+'?code='+result+'&msg=error', code=302)
-
-        #    case '401500': print('ok')
-        #    case '401': return redirect(error_url+'?code='+response_result+'&msg=duplicate account&refer=accounts.pknw1.co.uk', code=302)
-        #    case _: return redirect(error_url+'?code='+response_result+'&msg=unknownerror&refer=accounts.pknw1.co.uk', code=302)
+            return redirect(error_url+'?code='+admin_account+'&msg=error', code=302)
 
         ## Filebrowser User Add
 
     else:
         return render_template('add_user.html')
 
-    return result
 
 
 def add_jfadmin(username: str, password: str, email: str, code: str):
@@ -114,7 +106,7 @@ def add_fb(username: str, password: str):
     return result
 
 def add_npm(username:str, password:str):
-    api_url = npm_api_url #'https://proxymanager.admin.pknw1.co.uk/api'
+    api_url = npm_api_url #
     data = { 'identity': npm_user, 'secret': npm_password }
     npm_api = requests.post(api_url+'/tokens', data=data)
     print(npm_api.json()['token'])
@@ -163,6 +155,18 @@ def add_npm(username:str, password:str):
         result = '500'
         print(e.response.text)
     return str(result)
+
+@app.route('/')
+def home():
+    return render_template('create.html')
+
+from flask import send_from_directory
+
+@app.route('/create_files/<path:path>')
+def send_report(path):
+    # Using request args for path will expose you to directory traversal attacks
+    return send_from_directory('create_files', path)
+
 
 if __name__ == '__main__':
         app.run(host="0.0.0.0", port=3000, debug=True)
